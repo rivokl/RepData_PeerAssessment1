@@ -105,6 +105,63 @@ which corresponds to the 5-min interval starting at
 
 
 ## Imputing missing values
+1. The total number of missing values (coded as `NA`) in the dataset is
+```{r locate_missing_values}
+missing <- is.na(activity$steps)
+sum(missing)
+```
 
+2. In this particular dataset, whenever there is a missing value, there isn't a
+single reported value for the whole day. The strategy of filling the missing
+values with the mean/median for that day is therefore out of the picture.  
+Instead, our strategy is to fill all missing values in the dataset by using the
+number of steps taken, averaged across all days, of the corresponding 5-min
+interval. 
+
+3. More precisely, we impute as new value for each interval missing data
+the mean of that interval across all days where we have data:
+```{r impute_missing_values}
+activity_imputed <- activity
+for (intval in by_interval$interval) {
+  activity_imputed$steps[is.na(activity_imputed$steps) &
+                           activity_imputed$interval==intval] <-
+       by_interval$avg_steps[by_interval$interval==intval]
+}
+```
+
+4. The total number of steps taken per day with the imputed values is obtained
+as follows:
+```{r total_steps_imputed}
+activity_imputed_by_day <- activity_imputed %>% group_by(date)
+imputed_by_day <- summarize(activity_imputed_by_day, total_steps=sum(steps))
+```
+We have the following histogram for the dataset with imputed values:
+```{r histogram_total_steps_imputed, fig.height=4}
+hist(by_day$total_steps, breaks=10,
+     main="Total number of steps taken each day (imputed)", xlab="Total steps")
+```
+
+The mean of the total number of steps taken per day with the imputed values is
+```{r mean_total_steps_imputed}
+mean_total_steps_imputed <- mean(imputed_by_day$total_steps)
+mean_total_steps_imputed
+```
+while the median is
+```{r median_total_steps_imputed}
+median_total_steps_imputed <- median(imputed_by_day$total_steps)
+median_total_steps_imputed
+```
+
+With the abovementioned strategy, the mean of total steps computed with the
+dataset where the missing values were filled in didn't differ from the
+one obtained with the original dataset.  
+Please note that the total steps for each imputed day is exactly the mean total
+number of steps that we computed previously in the original dataset (remember,
+in this particular dataset, any day with a missing value lacks data for all
+5-min intervals for that day). So, it's not surprising that the mean total
+number of steps remained the same.  
+Algebraically, given the previous remark, if we denote by $\bar{x}_{n}$ the mean
+of $n$ data points, the following result allows to conclude:
+$\bar{x}_{n+m} = \frac{n}{n+m} \bar{x}_{n} + \frac{m}{n+m} \bar{x}_{m}$.
 
 ## Are there differences in activity patterns between weekdays and weekends?
