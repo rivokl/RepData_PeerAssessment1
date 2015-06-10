@@ -14,6 +14,9 @@ opts_chunk$set(echo=TRUE, fig.path='figure/')
 Load some useful packages:
 ```{r load_packages, message=FALSE}
 library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(scales)
 ```
 
 
@@ -69,6 +72,36 @@ missing values. Indeed, there are `r sum(by_day$median_steps != 0, na.rm=TRUE)`
 days where the median is not zero.)
 
 ## What is the average daily activity pattern?
+```{r average_daily_activity}
+activity_by_interval <- activity %>% group_by(interval)
+by_interval <- summarize(activity_by_interval,
+                         avg_steps=mean(steps, na.rm=TRUE))
+by_interval <- mutate(by_interval, time=fast_strptime(sprintf("%04d", interval),
+                                                      "%H%M"))
+# with(by_interval, plot(time, avg_steps, type='l', col='blue', lwd=3,
+#                        main="Number of steps taken, averaged across all days",
+#                        xlab='5-min interval',
+#                        ylab = "Average number of steps"))
+ggplot(data=by_interval, aes(time, avg_steps)) + 
+  geom_line(color="#000099", size=1) +
+  scale_x_datetime(breaks=date_breaks("120 min"), labels=date_format("%H:%M")) +
+  ggtitle("Number of steps taken, averaged across all days") +
+  ylab("Average number of steps") + xlab("5-min interval")
+```
+
+The 5-min interval with the maximum number of steps, on average across all the
+days in the dataset, is
+```{r max_steps}
+max_steps <- with(by_interval, by_interval[max(avg_steps) == avg_steps, 1])
+max_steps
+```
+```{r echo=FALSE}
+# max_steps <- by_interval %>% filter(max(avg_steps) == avg_steps) %>%
+#   select(interval)
+#  max_steps
+```
+which corresponds to the 5-min interval starting at
+`r max_steps %/% 100`:`r max_steps %% 100`.
 
 
 ## Imputing missing values
