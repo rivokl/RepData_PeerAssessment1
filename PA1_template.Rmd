@@ -5,21 +5,73 @@ output:
     keep_md: true
 ---
 
+```{r setup, cache=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(echo=TRUE, fig.path='figure/')
+```
+
+
+Load some useful packages:
+```{r load_packages, message=FALSE}
+library(dplyr)
+```
+
 
 ## Loading and preprocessing the data
-
-
+```{r load_data}
+dataFile <- 'activity.csv'
+activity <- read.csv(dataFile, 
+                     colClasses=c("numeric", "POSIXct", "numeric"))
+activity <- tbl_df(activity)
+```
 
 ## What is mean total number of steps taken per day?
+```{r total_steps}
+activity_by_day <- activity %>% group_by(date)
+by_day <- summarize(activity_by_day, total_steps=sum(steps))
+```
+```{r echo=FALSE}
+# summarize(activity_by_day, mean(steps))
+# activity_by_day <- mutate(activity_by_day,
+#                           total_steps=sum(steps),
+#                           mean_steps = mean(steps),
+#                           median_steps = median(steps))
+```
 
+The experiment was conducted for `r tally(by_day)` days
+(from `r min(by_day$date)` to `r max(by_day$date)`).
 
+1. The total number of steps taken per day is
+```{r}
+by_day$total_steps
+```
+
+2. The histogram of the total number of steps taken each day is as follows:
+```{r histogram_total_steps, fig.height=4}
+hist(by_day$total_steps, breaks=10,
+     main="Total number of steps taken each day", xlab="Total steps")
+```
+
+3. The mean of the total number of steps taken per day is
+```{r mean_total_steps}
+mean_total_steps <- mean(by_day$total_steps, na.rm=TRUE)
+mean_total_steps
+```
+
+The median of the total number of steps taken per day is
+```{r median_total_steps}
+median_total_steps <- median(by_day$total_steps, na.rm=TRUE)
+median_total_steps
+```
+
+[//]: # (**zero** for all `r sum(!is.na(by_day$total_steps))` days without
+missing values. Indeed, there are `r sum(by_day$median_steps != 0, na.rm=TRUE)`
+days where the median is not zero.)
 
 ## What is the average daily activity pattern?
 
 
-
 ## Imputing missing values
-
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
