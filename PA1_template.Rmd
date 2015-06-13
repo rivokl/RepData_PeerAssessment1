@@ -17,13 +17,14 @@ library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(scales)
+library(lattice)
 ```
 
 
 ## Loading and preprocessing the data
 ```{r load_data}
 dataFile <- 'activity.csv'
-activity <- read.csv(dataFile, 
+activity <- read.csv(dataFile,
                      colClasses=c("numeric", "POSIXct", "numeric"))
 activity <- tbl_df(activity)
 ```
@@ -78,10 +79,12 @@ by_interval <- summarize(activity_by_interval,
                          avg_steps=mean(steps, na.rm=TRUE))
 by_interval <- mutate(by_interval, time=fast_strptime(sprintf("%04d", interval),
                                                       "%H%M"))
-# with(by_interval, plot(time, avg_steps, type='l', col='blue', lwd=3,
+## base plot
+# with(by_interval, plot(time, avg_steps, type='l', col='blue', lwd=2,
 #                        main="Number of steps taken, averaged across all days",
-#                        xlab='5-min interval',
-#                        ylab = "Average number of steps"))
+#                        xlab="5-min interval",
+#                        ylab="Average number of steps"))
+## ggplot2
 ggplot(data=by_interval, aes(time, avg_steps)) + 
   geom_line(color="#000099", size=1) +
   scale_x_datetime(breaks=date_breaks("120 min"), labels=date_format("%H:%M")) +
@@ -164,4 +167,39 @@ Algebraically, given the previous remark, if we denote by $\bar{x}_{n}$ the mean
 of $n$ data points, the following result allows to conclude:
 $\bar{x}_{n+m} = \frac{n}{n+m} \bar{x}_{n} + \frac{m}{n+m} \bar{x}_{m}$.
 
+
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r activity_work}
+activity_work <- activity %>%
+  mutate(day=ifelse(wday(date, label=TRUE) %in% c("Sat", "Sun"),
+                    "weekend", "weekday")) %>%
+  mutate(day=factor(day))
+# activity_work[wday(activity_work$date, label=TRUE) %in% c("Sat", "Sun"),
+#               'day'] <- "weekend"
+# activity_work[! wday(activity_work$date, label=TRUE) %in% c("Sat", "Sun"),
+#               'day'] <- "weekday"
+# activity_work$day <- factor(activity_work$day)
+```
+
+```{r average_daily_activity_work}
+activity_work_by_interval <- activity_work %>% group_by(interval, day)
+work_by_interval <- summarize(activity_work_by_interval,
+                              avg_steps=mean(steps, na.rm=TRUE))
+work_by_interval <- mutate(work_by_interval,
+                           time=fast_strptime(sprintf("%04d", interval),"%H%M"))
+
+## lattice plot
+xyplot(avg_steps ~ time | day, data=work_by_interval,
+       layout=c(1, 2), type='l', , col='blue', lwd=2,
+       scales=list(x=list(format="%H:%M")),
+       xlab="5-min interval",
+       ylab="Average number of steps")
+## ggplot2
+# ggplot(data=work_by_interval, aes(time, avg_steps)) +
+#   geom_line(color="#000099", size=1) +
+#   facet_wrap(~day, ncol=1) +
+#   scale_x_datetime(breaks=date_breaks("120 min"),
+#                    labels=date_format("%H:%M")) +
+#   ylab("Average number of steps") + xlab("5-min interval")
+```
+
